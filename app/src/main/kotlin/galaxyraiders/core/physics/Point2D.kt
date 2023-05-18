@@ -2,13 +2,11 @@ package galaxyraiders.core.physics
 
 data class Point2D(val x: Double, val y: Double) {
   operator fun plus(p: Point2D): Point2D {
-    val newPoint = Point2D(this.x + p.x, this.y + p.y)
-    return newPoint
+    return Point2D(this.x + p.x, this.y + p.y)
   }
 
   operator fun plus(v: Vector2D): Point2D {
-    val newPoint = Point2D(this.x + v.dx, this.y + v.dy)
-    return newPoint
+    return Point2D(this.x + v.dx, this.y + v.dy)
   }
 
   override fun toString(): String {
@@ -30,8 +28,7 @@ data class Point2D(val x: Double, val y: Double) {
   }
 
   fun contactVector(p: Point2D): Vector2D {
-    val vector = this.impactVector(p)
-    return vector.normal
+    return this.impactVector(p).normal
   }
 
   fun contactDirection(p: Point2D): Vector2D {
@@ -41,7 +38,6 @@ data class Point2D(val x: Double, val y: Double) {
   fun distance(p: Point2D): Double {
     val dX = Math.abs(p.x - this.x)
     val dY = Math.abs(p.y - this.y)
-    val dist = Math.sqrt(dX*dX + dY*dY)
-    return dist
+    return Math.sqrt(dX*dX + dY*dY)
   }
 }

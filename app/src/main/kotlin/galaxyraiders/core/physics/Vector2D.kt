@@ -15,7 +15,7 @@ data class Vector2D(val dx: Double, val dy: Double) {
     get() = Math.atan2(this.dy, this.dx)
 
   val degree: Double
-    get() = this.radiant * 180 / Math.PI
+    get() = this.radiant * 180/Math.PI
 
   val unit: Vector2D
     get() = Vector2D(this.dx/Math.abs(this.magnitude), this.dy/Math.abs(this.magnitude))
@@ -32,8 +32,7 @@ data class Vector2D(val dx: Double, val dy: Double) {
   }
 
   operator fun times(v: Vector2D): Double {
-    val result = this.dx*v.dx + this.dy*v.dy
-    return result
+    return this.dx*v.dx + this.dy*v.dy
   }
 
   operator fun plus(v: Vector2D): Vector2D {
