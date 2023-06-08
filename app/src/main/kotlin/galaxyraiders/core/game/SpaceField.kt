@@ -3,6 +3,7 @@ package galaxyraiders.core.game
 import galaxyraiders.Config
 import galaxyraiders.core.physics.Point2D
 import galaxyraiders.core.physics.Vector2D
+import galaxyraiders.core.physics.Object2D
 import galaxyraiders.ports.RandomGenerator
 
 object SpaceFieldConfig {
@@ -45,7 +46,7 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
     get() = listOf(this.ship) + this.missiles + this.asteroids + this.explosions
 
   fun resetExplosions() {
-    explosions = emptyList()
+    this.explosions = emptyList()
   }
 
   fun moveShip() {
@@ -60,9 +61,9 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
     this.asteroids.forEach { it.move() }
   }
 
-  fun removeSpaceObjectsFromField(first: Object2D, second: Object2D) {
-    first.center = Point2D(width + 1, height + 1);
-    second.center = Point2D(width + 1, height + 1);
+  fun removeSpaceObjectsFromField(asteroid: SpaceObject, missile: SpaceObject) {
+    this.asteroids = this.asteroids.filter{ a -> a != asteroid}
+    this.missiles = this.missiles.filter{ a -> a != missile}
   }
 
   fun generateMissile() {
@@ -76,7 +77,7 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
   fun generateExplosion(asteroid: Object2D){
     this.explosions += Explosion(
       initialPosition = asteroid.center,
-      initialVelocity = 0,
+      initialVelocity = Vector2D(0.0, 0.0),
       radius = asteroid.radius,
       mass = asteroid.mass
     )
