@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import io.mockk.*
 
 @DisplayName("Given a game engine")
 class GameEngineTest {
@@ -77,13 +78,18 @@ class GameEngineTest {
   fun `it can process multiple PlayerCommand`() {
     val numPlayerCommands = controllerSpy.playerCommands.size
 
+    // Mock update json files functions to avoid collateral consequences
+    val gameSpy = spyk(normalGame)
+    every { gameSpy.updateScoreboard() } answers { Unit }
+    every { gameSpy.updateLeaderboard() } answers { Unit }
+
     // Process all available user commands
     repeat(numPlayerCommands) {
-      normalGame.processPlayerInput()
+      gameSpy.processPlayerInput()
     }
 
     // Should receive a null
-    normalGame.processPlayerInput()
+    gameSpy.processPlayerInput()
 
     assertEquals(0, controllerSpy.playerCommands.size)
   }
@@ -109,7 +115,7 @@ class GameEngineTest {
   }
 
   @Test
-  fun `it handle collisions between objects`() {
+  fun `it handle collisions between two asteroids`() {
     // Degenerate scenario: both asteroids will be above each other
     hardGame.generateAsteroids()
     hardGame.generateAsteroids()
@@ -221,10 +227,15 @@ class GameEngineTest {
 
   @Test
   fun `it can execute up to max iterations`() {
+    // Mock update json files functions to avoid collateral consequences
+    val gameSpy = spyk(hardGame)
+    every { gameSpy.updateScoreboard() } answers { Unit }
+    every { gameSpy.updateLeaderboard() } answers { Unit }
+
     val numPlayerCommands = controllerSpy.playerCommands.size
     val numRenders = visualizerSpy.numRenders
 
-    hardGame.execute(numPlayerCommands)
+    gameSpy.execute(numPlayerCommands)
 
     // There is a pause in the list of commands, so the engine
     // does not process once whereas it always render
@@ -234,7 +245,7 @@ class GameEngineTest {
       "GameEngine should process input, update and render",
       { assertEquals(0, controllerSpy.playerCommands.size) },
       { assertEquals(expectedNumRenders, visualizerSpy.numRenders) },
-      { assertTrue(hardGame.field.asteroids.size <= numPlayerCommands - 1) },
+      { assertTrue(gameSpy.field.asteroids.size <= numPlayerCommands - 1) },
     )
   }
 }

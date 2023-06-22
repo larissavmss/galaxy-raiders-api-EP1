@@ -40,6 +40,7 @@ class GameEngine(
   )
 
   data class LeaderboardDTO(
+    val start: LocalDateTime,
     var rankPosition: Int,
     val points: Double
   )
@@ -88,8 +89,13 @@ class GameEngine(
     val scoreboardList : MutableList<ScoreboardDTO> = objectMapper.readValue(scoreboardString)
 
     // Add current play
-    scoreboardList.add(this.currentGameExecution)
-
+    val index = scoreboardList.indexOfFirst { it.start == this.currentGameExecution.start }
+    if(index == -1){
+      scoreboardList.add(this.currentGameExecution)
+    } else {
+      scoreboardList[index] = this.currentGameExecution
+    }
+    
     // Write json
     val newJsonString = objectMapper.writeValueAsString(scoreboardList)
     File("../score/Scoreboard.json").writeText(newJsonString)
@@ -103,9 +109,16 @@ class GameEngine(
 
     // Check rank
     for(leader in leaderboardList) {
-      if(this.currentGameExecution.finalPoints > leader.points) {
+      if( leader.start == this.currentGameExecution.start) {
+        leaderboardList[leader.rankPosition - 1] = LeaderboardDTO(
+          start = this.currentGameExecution.start,
+          rankPosition = leader.rankPosition,
+          points = this.currentGameExecution.finalPoints
+        )
+      } else if(this.currentGameExecution.finalPoints > leader.points) {
         var i = leader.rankPosition
         leaderboardList[i-1] = LeaderboardDTO(
+          start = this.currentGameExecution.start,
           rankPosition = i,
           points = this.currentGameExecution.finalPoints
         )
@@ -126,6 +139,7 @@ class GameEngine(
     }
     if(leaderboardList.size == 0) {
       leaderboardList.add(LeaderboardDTO(
+        start = this.currentGameExecution.start,
         rankPosition = 1,
         points = this.currentGameExecution.finalPoints
       ))
