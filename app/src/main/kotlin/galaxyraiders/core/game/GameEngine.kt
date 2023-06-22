@@ -5,7 +5,13 @@ import galaxyraiders.ports.RandomGenerator
 import galaxyraiders.ports.ui.Controller
 import galaxyraiders.ports.ui.Controller.PlayerCommand
 import galaxyraiders.ports.ui.Visualizer
+
 import kotlin.system.measureTimeMillis
+import kotlin.collections.MutableList
+import java.time.LocalDateTime
+import java.io.File
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 
 const val MILLISECONDS_PER_SECOND: Int = 1000
 
@@ -27,11 +33,29 @@ class GameEngine(
   val controller: Controller,
   val visualizer: Visualizer,
 ) {
+  data class ScoreboardDTO(
+    val start: LocalDateTime,
+    var finalPoints: Double,
+    var asteroidsDestroyed: Int
+  )
+
+  data class LeaderboardDTO(
+    var rankPosition: Int,
+    val points: Double
+  )
+
   val field = SpaceField(
     width = GameEngineConfig.spaceFieldWidth,
     height = GameEngineConfig.spaceFieldHeight,
     generator = generator
   )
+
+  var currentGameExecution = ScoreboardDTO(
+    start = LocalDateTime.now(),
+    finalPoints = 0.0,
+    asteroidsDestroyed = 0
+  )
+    private set
 
   var playing = true
 
@@ -57,6 +81,61 @@ class GameEngine(
     this.renderSpaceField()
   }
 
+  fun updateScoreboard() {
+    val objectMapper = ObjectMapper()
+    // Read json
+    val scoreboardString = File("../score/Scoreboard.json").readText(Charsets.UTF_8)
+    val scoreboardList : MutableList<ScoreboardDTO> = objectMapper.readValue(scoreboardString)
+
+    // Add current play
+    scoreboardList.add(this.currentGameExecution)
+
+    // Write json
+    val newJsonString = objectMapper.writeValueAsString(scoreboardList)
+    File("../score/Scoreboard.json").writeText(newJsonString)
+  }
+
+  fun updateLeaderboard() {
+    val objectMapper = ObjectMapper()
+    // Read json
+    val leaderboardString = File("../score/Leaderboard.json").readText(Charsets.UTF_8)
+    val leaderboardList : MutableList<LeaderboardDTO> = objectMapper.readValue(leaderboardString)
+
+    // Check rank
+    for(leader in leaderboardList) {
+      if(this.currentGameExecution.finalPoints > leader.points) {
+        var i = leader.rankPosition
+        leaderboardList[i-1] = LeaderboardDTO(
+          rankPosition = i,
+          points = this.currentGameExecution.finalPoints
+        )
+        var currentLeader = leader
+        currentLeader.rankPosition++
+        while(i < leaderboardList.size) {
+          var leaderCopy = leaderboardList[i]
+          leaderboardList[i] = currentLeader
+          currentLeader = leaderCopy
+          currentLeader.rankPosition++
+          i++
+        }
+        if(i < 3) {
+          leaderboardList.add(currentLeader)
+        }
+        break
+      }
+    }
+    if(leaderboardList.size == 0) {
+      leaderboardList.add(LeaderboardDTO(
+        rankPosition = 1,
+        points = this.currentGameExecution.finalPoints
+      ))
+    }
+
+    // Update leaderboard
+    val newJsonString = objectMapper.writeValueAsString(leaderboardList)
+    File("../score/Leaderboard.json").writeText(newJsonString)
+  }
+
   fun processPlayerInput() {
     this.controller.nextPlayerCommand()?.also {
       when (it) {
@@ -70,8 +149,13 @@ class GameEngine(
           this.field.ship.boostRight()
         PlayerCommand.LAUNCH_MISSILE ->
           this.field.generateMissile()
-        PlayerCommand.PAUSE_GAME ->
+        PlayerCommand.PAUSE_GAME -> {
           this.playing = !this.playing
+          if(!this.playing) {
+            this.updateLeaderboard()
+            this.updateScoreboard()
+          }
+        }
       }
     }
   }
@@ -91,9 +175,11 @@ class GameEngine(
       if (first.impacts(second)) {
         if( first.type == "Asteroid" && second.type == "Missile" ) {
           this.field.generateExplosion(first)
+          this.updateCurrentGameExecution(first.radius + second.mass)
           this.field.removeSpaceObjectsFromField(first, second)
         } else if ( first.type == "Missile" && second.type == "Asteroid" ) {
           this.field.generateExplosion(second)
+          this.updateCurrentGameExecution(second.radius + second.mass)
           this.field.removeSpaceObjectsFromField(second, first)
         } else {
           first.collideWith(second, GameEngineConfig.coefficientRestitution)
@@ -123,6 +209,11 @@ class GameEngine(
 
   fun renderSpaceField() {
     this.visualizer.renderSpaceField(this.field)
+  }
+
+  private fun updateCurrentGameExecution(points: Double) {
+    this.currentGameExecution.asteroidsDestroyed += 1
+    this.currentGameExecution.finalPoints += points
   }
 }
 
