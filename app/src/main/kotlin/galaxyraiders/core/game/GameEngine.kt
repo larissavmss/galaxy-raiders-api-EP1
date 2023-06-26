@@ -130,7 +130,7 @@ class GameEngine(
         index++;
       }
     }
-    val added = false
+    var added = false
     for(leader in leaderboardList) {
       if(this.currentGameExecution.finalPoints >= leader.points) {
         var i = leader.rankPosition
