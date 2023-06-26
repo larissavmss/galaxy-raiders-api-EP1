@@ -130,6 +130,7 @@ class GameEngine(
         index++;
       }
     }
+    val added = false
     for(leader in leaderboardList) {
       if(this.currentGameExecution.finalPoints >= leader.points) {
         var i = leader.rankPosition
@@ -150,13 +151,14 @@ class GameEngine(
         if(i < 3) {
           leaderboardList.add(currentLeader)
         }
+        added = true
         break
       }
     }
-    if(leaderboardList.size == 0) {
+    if(leaderboardList.size < 3 && !added) {
       leaderboardList.add(LeaderboardDTO(
         start = this.currentGameExecution.start,
-        rankPosition = 1,
+        rankPosition = leaderboardList.size + 1,
         points = this.currentGameExecution.finalPoints
       ))
     }
