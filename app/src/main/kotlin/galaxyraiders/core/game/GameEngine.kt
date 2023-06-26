@@ -12,6 +12,8 @@ import java.time.LocalDateTime
 import java.io.File
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 
 const val MILLISECONDS_PER_SECOND: Int = 1000
 
@@ -33,16 +35,16 @@ class GameEngine(
   val controller: Controller,
   val visualizer: Visualizer,
 ) {
-  data class ScoreboardDTO(
-    val start: LocalDateTime,
-    var finalPoints: Double,
-    var asteroidsDestroyed: Int
+  data class ScoreboardDTO @JsonCreator constructor(
+    @JsonProperty("start") val start: String,
+    @JsonProperty("finalPoints") var finalPoints: Double,
+    @JsonProperty("asteroidsDestroyed") var asteroidsDestroyed: Int
   )
 
-  data class LeaderboardDTO(
-    val start: LocalDateTime,
-    var rankPosition: Int,
-    val points: Double
+  data class LeaderboardDTO @JsonCreator constructor(
+    @JsonProperty("start") val start: String,
+    @JsonProperty("points") var points: Double,
+    @JsonProperty("rankPosition") var rankPosition: Int
   )
 
   val field = SpaceField(
@@ -52,7 +54,7 @@ class GameEngine(
   )
 
   var currentGameExecution = ScoreboardDTO(
-    start = LocalDateTime.now(),
+    start = LocalDateTime.now().toString(),
     finalPoints = 0.0,
     asteroidsDestroyed = 0
   )
@@ -84,10 +86,15 @@ class GameEngine(
 
   fun updateScoreboard() {
     val objectMapper = ObjectMapper()
+    val fileName = "src/main/kotlin/galaxyraiders/core/score/Scoreboard.json"
     // Read json
-    val scoreboardString = File("../score/Scoreboard.json").readText(Charsets.UTF_8)
-    val scoreboardList : MutableList<ScoreboardDTO> = objectMapper.readValue(scoreboardString)
-
+    val scoreboardString = File(fileName).readText(Charsets.UTF_8)
+    val scoreboardList : MutableList<ScoreboardDTO>
+    if(scoreboardString.isNotEmpty()){
+      scoreboardList = objectMapper.readValue(scoreboardString)
+    } else {
+      scoreboardList = mutableListOf()
+    }
     // Add current play
     val index = scoreboardList.indexOfFirst { it.start == this.currentGameExecution.start }
     if(index == -1){
@@ -98,15 +105,22 @@ class GameEngine(
     
     // Write json
     val newJsonString = objectMapper.writeValueAsString(scoreboardList)
-    File("../score/Scoreboard.json").writeText(newJsonString)
+    File(fileName).writeText(newJsonString)
   }
 
   fun updateLeaderboard() {
     val objectMapper = ObjectMapper()
+    val fileName = "src/main/kotlin/galaxyraiders/core/score/Leaderboard.json"
     // Read json
-    val leaderboardString = File("../score/Leaderboard.json").readText(Charsets.UTF_8)
-    val leaderboardList : MutableList<LeaderboardDTO> = objectMapper.readValue(leaderboardString)
-
+    val leaderboardString = File(fileName).readText(Charsets.UTF_8)
+    
+    val leaderboardList : MutableList<LeaderboardDTO>
+    if(leaderboardString.isNotEmpty()) {
+      leaderboardList = objectMapper.readValue(leaderboardString)
+    } else {
+      leaderboardList = mutableListOf()
+    }
+    
     // Check rank
     for(leader in leaderboardList) {
       if( leader.start == this.currentGameExecution.start) {
@@ -147,7 +161,7 @@ class GameEngine(
 
     // Update leaderboard
     val newJsonString = objectMapper.writeValueAsString(leaderboardList)
-    File("../score/Leaderboard.json").writeText(newJsonString)
+    File(fileName).writeText(newJsonString)
   }
 
   fun processPlayerInput() {
@@ -166,8 +180,8 @@ class GameEngine(
         PlayerCommand.PAUSE_GAME -> {
           this.playing = !this.playing
           if(!this.playing) {
-            this.updateLeaderboard()
             this.updateScoreboard()
+            this.updateLeaderboard()
           }
         }
       }
