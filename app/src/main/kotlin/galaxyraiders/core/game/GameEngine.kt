@@ -122,14 +122,16 @@ class GameEngine(
     }
     
     // Check rank
+    var index = leaderboardList.indexOfFirst { it.start == this.currentGameExecution.start }
+    if(index != -1) {
+      leaderboardList.removeAt(index);
+      while(index < leaderboardList.size) {
+        leaderboardList[index].rankPosition--;
+        index++;
+      }
+    }
     for(leader in leaderboardList) {
-      if( leader.start == this.currentGameExecution.start) {
-        leaderboardList[leader.rankPosition - 1] = LeaderboardDTO(
-          start = this.currentGameExecution.start,
-          rankPosition = leader.rankPosition,
-          points = this.currentGameExecution.finalPoints
-        )
-      } else if(this.currentGameExecution.finalPoints > leader.points) {
+      if(this.currentGameExecution.finalPoints >= leader.points) {
         var i = leader.rankPosition
         leaderboardList[i-1] = LeaderboardDTO(
           start = this.currentGameExecution.start,
